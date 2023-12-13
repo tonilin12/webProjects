@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+
+        table,td {
+          border: 1px solid darkslategray;
+          color:white;
+          empty-cells: inherit;
+          border-collapse: collapse;
+          margin: auto;
+          margin-top:10px;
+
+
+          text-align: center;
+        }
+        #gombok
+        {
+            text-align:  center;
+
+
+        }
+        #load
+        {
+            display: none;
+        }
+        hr
+        {
+            width: 60%;
+            text-align: center;
+        }
+
+
+    </style>
+
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Document</title>
+</head>
+<body>
+
+    <div id="gombok">
+        <label for="">Player</label>
+
+        <input type="text" id="playername">
+
+        <br>
+        <label for="">Palyavalasztas:</label>
+        <button id="easy">könnyű</button>
+        <button id="advanced">haladó</button>
+        <button id="extreme">extrém</button>
+        <button id="custom">egyéni</button><br>
+        <button id="loadcourse">meglevőpályák</button>
+
+        <hr>
+         <label for="">műveletek:</label>
+        <button id="pause">Pause</button>
+        <button id="results">eredmények</button>
+        <button id="save">mentés</button>
+        <button id="load">betölt</button>
+        <label for="">idő:</label>
+        <label for="" id="timer">00:00</label>
+
+    </div>
+    <div id="tablediv">
+
+    </div>
+</body>
+</html>
+
+<script>
+
+
+    let time=0
+    let tdheight=20
+    let tdwidth= 25
+    let table
+    let palyanev=""
+    let playernev
+    let results=[]
+    let custompalya=[]
+    if (localStorage.results) {
+        results=JSON.parse(localStorage.results)
+
+    }
+    if (localStorage.results) {
+        custompalya=JSON.parse(localStorage.custompalya)
+
+    }   
+    /*
+    custompalya=[]
+    localStorage.custompalya=JSON.stringify(custompalya)
+     results=[]
+     localStorage.results=JSON.stringify(results)*/
+
+    document.querySelector("#results").addEventListener("click",(e)=>
+        {
+            showResults()
+        }
+    )
+    document.querySelector("#easy").addEventListener("click",(e)=>
+        {
+            if (document.querySelector("#playername").value!="") {
+                easyTableCreate()
+                palyanev="easy"
+                setDefault()
+            }
+        }
+    )
+    document.querySelector("#advanced").addEventListener("click",(e)=>
+        {
+            if (document.querySelector("#playername").value!="") {
+                advancedTableCreate()
+                palyanev="advanced"
+                setDefault()
+
+            }
+        }
+    )
+    document.querySelector("#extreme").addEventListener("click",(e)=>
+        {
+
+            if (document.querySelector("#playername").value!="") {
+                extremeTableCreate()
+                palyanev="extreme"
+                setDefault()
+            }
+        }
+    )
+    let saveobj
+    let s1=0
+    document.querySelector("#save").addEventListener("click",(e)=>
+        {
+            if (document.querySelector("#tablediv").children.length>0) {
+                let table1=document.querySelector("#tablediv").firstChild
+                let tablecopy = table1.cloneNode(true)
+                let nev1=playernev
+                let time1=time
+                saveobj={table:tablecopy,time:time1,name:nev1}
+                document.querySelector("#load").style.display="initial"
+                s1++
+            }
+        }
+    )
+    document.querySelector("#load").addEventListener("click",(e)=>
+        {
+            if (s1>0) {
+                document.querySelector("#tablediv").innerHTML=""
+                document.querySelector("#tablediv").appendChild(saveobj.table)
+                setDefault()
+
+                document.querySelector("#playername").value=saveobj.name
+                document.querySelector("#load").style.display="none"
+                time=saveobj.time
+            }
+        }
+    )
+
+    document.querySelector("#custom").addEventListener("click",(e)=>
+        {
+                let rowcount = parseInt(prompt("sorokszáma(szám)"))
+
+                let cellcount = parseInt(prompt("oszlopokszáma(szám)"))
+                if (!isNaN(rowcount)&&!isNaN(cellcount)&&rowcount>0&&cellcount>0) {
+                    generateTable(rowcount,cellcount)
+                        setClickEvent2()
+                        palyanev=`custom${custompalya.length}`
+                        createButton1()
+                }
+                else
+                {
+                    alert("rossz bemenet")
+                }
+    
+            
+          }
+    )
+    let k0=0
+    document.querySelector("#loadcourse").addEventListener("click",(e)=>
+        {   
+
+            if (custompalya.length>0) {
+                let a = Math.ceil(Math.sqrt(custompalya.length))
+                generateTable(a,a)
+                let k2=1
+                for (const tr of document.querySelector("table").rows) {
+                    for (const td of tr.cells) {
+                        if (k2<=custompalya.length) {
+                            let btn = document.createElement("button")
+                            btn.innerHTML = "custom"+(custompalya.length-k2);
+                            palyanev=btn.innerHTML
+                            btn.style.margin="5px"
+                            btn.addEventListener("click",(e)=>
+                                {
+                                    document.querySelector("#tablediv").innerHTML=`${custompalya[k0]}`
+                                    setClickEvent2()
+                                    createButton1()
+                                    k0++
+                                    if (k0==k2-1) {
+                                        k0=0
+                                    }
+                                }
+                            )
+                            k2++
+                            td.appendChild(btn)
+                          
+                        }
+                    }
+                }
+            }
+
+
+
+
+        }
+    )
+
+    function seged0()
+    {
+        for (const tr of table.rows) {
+                for (const td of tr.cells) {
+                    if (td.style.backgroundColor=="white") {
+                        td.innerHTML="0"
+                    }
+                }
+        }
+    }
+    function setDefault()
+    {
+        time=0
+        clearInterval(mytimer)
+        table=document.querySelector("table")
+        mytimer=setInterval(counter,1000)
+        let table1=document.querySelector("table")
+        seged0()
+        checkNeightbour()
+        setClickEvent()
+        let seged= document.getElementById("playername")
+        let seged2 = seged.cloneNode(true)
+        playernev=seged2.value
+    }
+
+    
+</script>
+
+
+<script>
+
+    function setClickEvent2()
+    {
+        let table1=document.querySelector("table")
+        for (const tr of table1.rows) {
+            for (const td of tr.cells) {
+
+                td.addEventListener("click",(e)=>
+                  {
+                        if (e.detail===1) {
+                            if (td.style.backgroundColor=="white") {
+                                td.style.backgroundColor="black"
+                            }
+                            else {
+                                td.style.backgroundColor="white"
+                                td.innerHTML=""
+                            }
+                        }
+                        if (e.detail===2) {
+                            let szam = parseInt(prompt("lámpaszám"))
+                            if (!isNaN(szam)&&szam>=0&&szam<=4 && td.style.backgroundColor=="black") {
+                                    td.innerHTML=`${szam}`
+                            }
+                        }
+                  }
+               )
+            }
+         }
+        
+    }
+    function createButton1()
+    {
+            let btn = document.createElement("button")
+            btn.innerHTML = "Véglegesítés";
+             btn.id="finalize"
+            btn.style.margin="5px"
+             document.querySelector("#tablediv").style.textAlign="center"
+
+            btn.addEventListener("click",(e)=>
+                {
+                    let countwhite=0
+                    for (const tr of document.querySelector("table").rows) {
+                        for (const td of tr.cells) {
+                            countwhite++
+                        }
+                    }
+                    if (document.querySelector("#playername").value && countwhite>0) {
+                        let tempdiv=document.createElement("div")
+                        tempdiv.appendChild(document.querySelector("#tablediv").children[0])
+                        custompalya.push(tempdiv.innerHTML)
+                        localStorage.custompalya=JSON.stringify(custompalya)
+                        document.querySelector("#tablediv").innerHTML=`${tempdiv.innerHTML}`
+                        setDefault()
+
+                    }
+
+                }
+            )
+            document.querySelector("#tablediv").appendChild(btn)
+
+    }
+
+    function checkWin()
+    {
+        let c=true
+        for (const tr of table.rows) {
+            for (const td of tr.cells) {
+                let v=parseInt(td.innerHTML)
+                let b1=td.style.backgroundColor=="black"&& !isNaN(v) && td.style.color!="yellow"
+                if (b1||td.style.backgroundColor=="white" || td.style.backgroundColor=="red") {
+                    c=false
+                    break;
+                }
+            }
+        }
+        if (c) {
+             document.querySelector("#tablediv").innerHTML="<h1 align=\"center\" >You Won<h1>"
+             let ido=document.querySelector("#timer").innerHTML
+            let data=`név: ${playernev}  |  pálya: ${palyanev}  |  idő: ${ido}`
+             results.push(data) 
+             clearInterval(mytimer)
+             localStorage.results=JSON.stringify(results)
+
+        }   
+    }
+
+
+function showResults()
+{
+    var frog = window.open("","wildebeast","width=300,height=300,scrollbars=1,resizable=1")
+
+    var html = "<html><head></head><body>"
+    for (const elem of results) {
+        html+=`${elem}<br>`
+    }
+    html += "</body></html>"
+
+    frog.document.open()
+    frog.document.write(html)
+    frog.document.close()
+}
+
+
+    let mytimer
+    let b10=false
+    
+    let child
+    document.querySelector("#pause").addEventListener("click",e=>
+        {
+
+            if (time>0 ) {
+                if (b10==false) {
+                    child=document.querySelector("#tablediv").children[0]
+                    let seged1=document.querySelector("#tablediv").innerHTML
+                    document.querySelector("#tablediv").innerHTML=seged1
+                    clearInterval(mytimer)
+                    document.querySelector("#pause").innerHTML="Continue"
+                    b10=true
+                }
+                else
+                {
+                    mytimer=setInterval(counter,1000)
+                    document.querySelector("#pause").innerHTML="Pause"
+                    document.querySelector("#tablediv").innerHTML=""
+                    document.querySelector("#tablediv").appendChild(child)
+                    b10=false
+                }
+            }
+        }
+    )
+    function counter()
+    {
+        time++
+        let perc=Math.floor( time/60)
+        let masodperc=time%60
+        let string=""
+        helyesKiirat(perc)
+        string+=":"
+        helyesKiirat(masodperc)
+        function helyesKiirat(szam)
+        {
+            if (szam<10) {
+                string+=`0${szam}`
+            }
+            else
+            {
+                string+=`${szam}`
+            }
+        }
+        document.querySelector("#timer").innerHTML=string
+        checkWin()
+    }
+
+
+</script>
+    
+<script>
+    function checkNeightbour()
+    {
+        let table=document.querySelector("table")
+        for (const tr of table.rows) {
+            for (const td of tr.cells) {
+               if (td.style.backgroundColor=="black") {
+                    let v=parseInt(td.innerHTML)
+                   
+                    let cellindex=td.cellIndex
+                    let rowindex=tr.rowIndex
+                    let td1=table.rows[rowindex].cells[cellindex]
+                    for (let index = rowindex-1; index <= rowindex+1; index++) {
+                        if (index<0) {
+                            index++
+                        }
+                        if (index>=table.rows.length) {
+                            break;
+                        }
+                        let tdn=table.rows[index].cells[cellindex]
+                            if (tdn.children.length>0) {
+                                if (tdn.children[0].id=="kep1") {
+                                    v--
+                                }
+                            }
+                    }
+                    for (let index = cellindex-1; index <= cellindex+1; index++) {
+                        if (index<0) {
+                            index++
+                        }
+                        if (index>=table.rows.length) {
+                            break;
+                        }
+                        let tdn=table.rows[rowindex].cells[index]
+                            if (tdn.children.length>0) {
+                                if (tdn.children[0].id=="kep1") {
+                                    v--
+                                }
+                            }
+                    }
+                    if (v==0) {
+                        td1.style.color="yellow"
+
+                        td1.style.border= "3px solid yellow"
+                    }
+                    else
+                    {
+                        td1.style.color="white"
+                        td1.style.border= "none"
+
+                    }
+               }
+            }
+        }
+    }
+</script>
+
+<script>
+
+</script>
+<script>
+    let c10=0
+    function setClickEvent()
+    {
+        for (const tr of table.rows) {
+
+            for (const td of tr.cells) {
+
+                    td.addEventListener("click",(e)=>
+                        {
+                        let countred=0
+                        for (const tr of table.rows) {
+                            for (const td of tr.cells) {
+                                    if (td.style.backgroundColor=="red") {
+                                        countred++
+                                    }
+                                }
+                          }
+                          c10=countred
+
+                            let img=document.createElement("img")
+                            img.src="kep1.png"
+                            img.id="kep1"
+                            img.style.width=`${tdwidth}px`
+                            img.style.height=`${tdheight}px`
+                            let b1=td.style.backgroundColor=="white" &&td.children.length==0
+                            let b2=td.style.backgroundColor=="lightyellow" && td.children.length==0
+                            if (b1&&countred==0||b2&&countred==0) {
+                                let szin="lightyellow"
+                                td.innerHTML=""
+                                td.appendChild(img)
+                                lightUp( tr.rowIndex,td.cellIndex,szin)
+                                td.style.backgroundColor=`${szin}`
+                                           
+                            }
+                        
+                            else if(countred>0&& td.style.backgroundColor=="red")
+                            {
+                                let b=true
+
+                                let szin="white"
+                                lightUp(tr.rowIndex,td.cellIndex,szin)
+                                td.removeChild(td.firstChild)
+                                td.innerHTML=`${countred-1}`
+                                    td.style.backgroundColor="lightyellow"
+                                    td.style.color="lightyellow"
+                                    if (c10==3){
+                                        td.innerHTML=`${c10-1}`
+                                    }
+                            }
+                            else if(td.children.length!=0 &&countred==0)
+                            {
+                                let szin="white"
+                                lightUp( tr.rowIndex,td.cellIndex,szin)
+                                td.innerHTML="0"
+                                td.style.backgroundColor=`${szin}`
+                                td.style.color=`white`
+                            }
+
+                            checkNeightbour()
+                        } 
+                    )
+            }
+        }
+        
+
+    }
+  
+    let redtd=[]
+
+    function lightUp(i,j,szin)
+    {
+        let k=1
+
+        for (let index = i+1; index < table.rows.length; index++) {
+            if (table.rows[index].cells[j].style.backgroundColor=="black") {
+                
+                break;
+            }
+       
+                setTimeout(() => {
+                    szinez()
+                }, k*100)
+           
+            function szinez()
+            {
+                if (szin=="lightyellow") {
+                    let seged= table.rows[index].cells[j]
+                    seged.style.backgroundColor=`${szin}`
+                    if (seged.children.length>0 && index!=i) {
+                        seged.style.backgroundColor="red"
+                        table.rows[i].cells[j].style.backgroundColor="red"
+                        redtd.push({a:index,b:j})
+                    }
+                    if (seged.children.length==0) {
+                        let v=parseInt(seged.innerHTML)
+                        v=v+1
+                        seged.innerHTML=`${v}`
+                        seged.style.color=`${szin}`
+                    }
+                }
+                else
+                {
+                    let seged= table.rows[index].cells[j]
+                    let v=parseInt(seged.innerHTML)
+
+                    if (!isNaN(v)) {
+                        if (v>0) {
+                            v=v-1
+                        }
+                        seged.innerHTML=`${v}`
+                        if (v==0) {
+                            seged.style.color=`${szin}`
+                            seged.style.backgroundColor=`${szin}`
+                        }
+                    }
+                    else
+                    {
+                        let b=false
+                        for (const elem of redtd) {
+                            if (elem.a==i && elem.b==j && c10==3) {
+                                b=true
+                            }
+                        }
+                        if (seged.style.backgroundColor=="red" && b==false) {
+
+                            seged.style.color=`lightyellow`
+                            seged.style.backgroundColor=`lightyellow`
+                        }
+                    }
+                }
+
+
+            }
+            k++
+        }
+
+        k=1
+        for (let index = j+1; index < table.rows[i].cells.length; index++) {
+            if (table.rows[i].cells[index].style.backgroundColor=="black") {
+                break;
+            }
+            let mytimer2=setInterval(szinez,k*100)
+            function szinez()
+            {
+                clearInterval(mytimer2)
+                if (szin=="lightyellow") {
+                    let seged=table.rows[i].cells[index]
+                    seged.style.backgroundColor=`${szin}`
+                    if (seged.children.length>0 && index!=j) {
+                        seged.style.backgroundColor="red"
+                        table.rows[i].cells[j].style.backgroundColor="red"
+                        redtd.push({a:i,b:index})
+                    }
+                    if (seged.children.length==0) {
+                        let v=parseInt(seged.innerHTML)
+                        v=v+1
+                        seged.innerHTML=`${v}`
+                        seged.style.color=`${szin}`
+                    }
+                }
+                else
+                {
+                    let seged=table.rows[i].cells[index]
+                    let v=parseInt(seged.innerHTML)
+
+                    if (!isNaN(v)) {
+                      
+                        if (v>0) {
+                            v=v-1
+                        }
+                        seged.innerHTML=`${v}`
+                        if (v==0) {
+                            seged.style.color=`${szin}`
+                            seged.style.backgroundColor=`${szin}`
+                        }
+                    }
+                    else
+                    {
+                        let b=false
+                        for (const elem of redtd) {
+                            if (elem.a==i && elem.b==j && c10==3) {
+                                b=true
+                            }
+                        }
+                        if (seged.style.backgroundColor=="red" && b==false) {
+
+                            seged.style.color=`lightyellow`
+                            seged.style.backgroundColor=`lightyellow`
+                        }
+                    }
+
+
+                }
+            }
+            k++
+        }
+        k=1
+        for (let index = j-1; index >=0; index--) {
+            if (table.rows[i].cells[index].style.backgroundColor=="black") {
+                td1=table.rows[i].cells[index]
+                break;
+            }
+            let mytimer2=setInterval(szinez,k*100)
+            function szinez()
+            {
+                clearInterval(mytimer2)
+                if (szin=="lightyellow") {
+                    let seged=table.rows[i].cells[index]
+                    seged.style.backgroundColor=`${szin}`
+                    if (seged.children.length>0 && index!=j) {
+                        seged.style.backgroundColor="red"
+                        table.rows[i].cells[j].style.backgroundColor="red"
+                        redtd.push({a:i,b:index})
+                    }
+                    if (seged.children.length==0) {
+                        let v=parseInt(seged.innerHTML)
+                        v=v+1
+                        seged.innerHTML=`${v}`
+                        seged.style.color=`${szin}`
+                    }
+                }
+                else
+                {
+                    let seged=table.rows[i].cells[index]
+                    let v=parseInt(seged.innerHTML)
+
+                    if (!isNaN(v)) {
+                        if (v>0) {
+                            v=v-1
+                        }
+                        seged.innerHTML=`${v}`
+                        if (v==0) {
+                            seged.style.color=`${szin}`
+                            seged.style.backgroundColor=`${szin}`
+                        }
+                    }
+                    else
+                    {
+                        let b=false
+                        for (const elem of redtd) {
+                            if (elem.a==i && elem.b==j && c10==3) {
+                                b=true
+                            }
+                        }
+                        if (seged.style.backgroundColor=="red" && b==false) {
+
+                            seged.style.color=`lightyellow`
+                            seged.style.backgroundColor=`lightyellow`
+                        }
+                    }
+                }
+            }
+
+            k++
+        }
+        k=1
+
+        
+        for (let index = i-1; index >=0; index--) {
+            if (table.rows[index].cells[j].style.backgroundColor=="black") {
+                let td1=table.rows[index].cells[j]
+                break;
+            }
+
+            let mytimer2=setInterval(szinez,k*100)
+            function szinez()
+            {
+                clearInterval(mytimer2)
+                if (szin=="lightyellow") {
+                    let seged= table.rows[index].cells[j]
+                    seged.style.backgroundColor=`${szin}`
+                    if (seged.children.length>0 && index!=i) {
+                        seged.style.backgroundColor="red"
+                        table.rows[i].cells[j].style.backgroundColor="red"
+                        redtd.push({a:index,b:j})
+                    }
+                    if (seged.children.length==0) {
+                        let v=parseInt(seged.innerHTML)
+                        v=v+1
+                        seged.innerHTML=`${v}`
+                        seged.style.color=`${szin}`
+                    }
+                }
+                else
+                {
+                    let seged= table.rows[index].cells[j]
+                    let v=parseInt(seged.innerHTML)
+
+                    if (!isNaN(v)) {
+                        if (v>0) {
+                            v=v-1
+                        }
+                        seged.innerHTML=`${v}`
+                        if (v==0) {
+                            seged.style.color=`${szin}`
+                            seged.style.backgroundColor=`${szin}`
+                        }
+                    }
+                    else
+                    {
+                        let b=false
+                        for (const elem of redtd) {
+                            if (elem.a==i && elem.b==j && c10==3) {
+                                b=true
+                            }
+                        }
+                        if (seged.style.backgroundColor=="red" && b==false) {
+
+                            seged.style.color=`lightyellow`
+                            seged.style.backgroundColor=`lightyellow`
+                        }
+                    }
+                }
+            }
+            k++
+        }
+
+    }
+</script>
+
+
+
+
+<script>
+    function generateTable(rowsize,colsize)
+    {
+        document.querySelector("#tablediv").innerHTML=""
+        let table=document.createElement("TABLE")
+        document.querySelector("#tablediv").appendChild(table)
+        
+        for (let index = 0; index < rowsize; index++) {
+            let tr=document.createElement("TR")
+            table.appendChild(tr)
+            for (let index = 0; index < colsize; index++) {
+                let td=document.createElement("TD")
+                td.style.backgroundColor="white"
+                td.style.width=tdwidth+"px"
+                td.style.height=tdheight+"px"
+                tr.appendChild(td)
+            }
+
+        }
+    }
+    function extremeTableCreate()
+    {
+            generateTable(10,10)
+            let k=0
+            table=document.querySelector("table")
+
+            var x =table.rows[k].cells
+            let n=Math.floor(x.length/2)
+            x[n-4].style.backgroundColor="black"
+            k++
+
+            x =table.rows[k].cells
+            x[n].style.backgroundColor="black"
+            x[n].innerHTML="3"
+            x[n+2].style.backgroundColor="black"
+            x[n+2].innerHTML="2"
+            x[n+4].style.backgroundColor="black"
+            k++
+            
+            var x =table.rows[k].cells
+            x[n-4].style.backgroundColor="black"
+            x[n-4].innerHTML="0"
+            x[n-3].style.backgroundColor="black"
+            x[n+2].style.backgroundColor="black"
+            k++
+
+            var x =table.rows[k].cells
+            x[n-1].style.backgroundColor="black"
+            k++
+
+            var x =table.rows[k].cells
+            x[n].style.backgroundColor="black"
+            x[n].innerHTML="1"
+            x[n+1].style.backgroundColor="black"
+            x[n-1].style.backgroundColor="black"
+            x[n-4].style.backgroundColor="black"
+            x[n-4].innerHTML="1"
+            k++
+
+            n=n-1
+            var x =table.rows[k].cells
+            x[n].style.backgroundColor="black"
+            x[n+1].style.backgroundColor="black"
+            x[n-1].style.backgroundColor="black"
+            x[n+4].style.backgroundColor="black"
+            x[n+4].innerHTML="3"
+            k++
+            
+            var x =table.rows[k].cells
+            x[n+1].style.backgroundColor="black"
+            k++
+
+            var x =table.rows[k].cells
+            x[n+4].style.backgroundColor="black"
+            x[n+3].style.backgroundColor="black"
+            x[n+3].innerHTML="0"
+            x[n-2].style.backgroundColor="black"
+            x[n-2].innerHTML="1"
+            k++
+
+            
+            x =table.rows[k].cells
+            x[n].style.backgroundColor="black"
+            x[n].innerHTML="0"
+            x[n-2].style.backgroundColor="black"
+            x[n-4].style.backgroundColor="black"
+            x[n-4].innerHTML="3"
+            k++
+
+            x =table.rows[k].cells
+            x[n+4].style.backgroundColor="black"
+            x[n+4].innerHTML="0"
+            k++
+    }
+
+
+    function easyTableCreate()
+    {
+            generateTable(7,7)
+            table=document.querySelector("table")
+            var x =table.rows[0].cells
+            let n=Math.floor(x.length/2)
+            x[n].style.backgroundColor="black"
+            x[n].innerHTML="1"
+
+            x =table.rows[1].cells
+            x[1].style.backgroundColor="black"
+            x[1].innerHTML="0"
+            x[x.length-2].style.backgroundColor="black"
+            x[x.length-2].innerHTML="2"
+
+            x =table.rows[3].cells
+            x[n].style.backgroundColor="black"
+            x[0].style.backgroundColor="black"
+            x[x.length-1].style.backgroundColor="black"
+
+            x =table.rows[5].cells
+            x[1].style.backgroundColor="black"
+            x[x.length-2].style.backgroundColor="black"
+            x[x.length-2].innerHTML="2"
+   
+            x =table.rows[6].cells
+            x[n].style.backgroundColor="black"
+            x[n].innerHTML="3"
+    }
+
+    function advancedTableCreate()
+    {   
+            generateTable(7,7)
+            table=document.querySelector("table")
+            var x =table.rows[0].cells
+            let n=Math.floor(x.length/2)
+            x[n-1].style.backgroundColor="black"
+            x[n-1].innerHTML="1"
+            x[n+1].style.backgroundColor="black"
+
+            x =table.rows[2].cells
+            x[n-1].style.backgroundColor="black"
+            x[n+1].style.backgroundColor="black"
+            x[n+1].innerHTML="3"
+            x[n-3].style.backgroundColor="black"
+            x[n+3].style.backgroundColor="black"
+
+            x =table.rows[3].cells
+            x[n].style.backgroundColor="black"
+
+            x =table.rows[4].cells
+            x[n-1].style.backgroundColor="black"
+            x[n+1].style.backgroundColor="black"
+            x[n-3].style.backlgroundColor="black"
+            x[n-3].innerHTML="2"
+            x[n+3].style.backgroundColor="black"
+
+            x =table.rows[6].cells
+            x[n-1].style.backgroundColor="black"
+            x[n+1].style.backgroundColor="black"
+            x[n+1].innerHTML="2"
+    }
+</script>
